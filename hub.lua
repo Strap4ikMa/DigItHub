@@ -46,7 +46,7 @@ local function createButton(name, posY, callback)
     Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 8)
     local gradient = Instance.new("UIGradient", btn)
     gradient.Color = ColorSequence.new{ColorSequenceKeypoint.new(0, Color3.fromRGB(70, 70, 70)), ColorSequenceKeypoint.new(1, Color3.fromRGB(40, 40, 40))}
-    
+
     local active = false
     btn.MouseButton1Click:Connect(function()
         active = not active
@@ -73,7 +73,7 @@ local function updateTool()
     local newTool = character:FindFirstChildWhichIsA("Tool") or player.Backpack:FindFirstChildWhichIsA("Tool")
     if newTool and newTool ~= currentTool then
         currentTool = newTool
-        humanoid:EquipTool(currentTool)
+        pcall(function() humanoid:EquipTool(currentTool) end) -- Обработка ошибок
         StatusLabel.Text = "Status: Equipped " .. currentTool.Name .. "\nTool: " .. currentTool.Name
     elseif not newTool then
         currentTool = nil
@@ -101,10 +101,12 @@ local function autoDig(active)
             local digSuccess = false
             for _, event in pairs(replicatedStorage:GetChildren()) do
                 if event:IsA("RemoteEvent") and event.Name:lower():match("dig") then
-                    for i = 1, 20 do
-                        event:FireServer(rootPart.Position, currentTool)
-                        wait(0.05)
-                    end
+                    pcall(function() -- Обработка ошибок при вызове события
+                        for i = 1, 20 do
+                            event:FireServer(rootPart.Position, currentTool)
+                            wait(0.05)
+                        end
+                    end)
                     digSuccess = true
                     break
                 end
@@ -116,6 +118,7 @@ local function autoDig(active)
             humanoid.WalkSpeed = 50
             humanoid:MoveTo(rootPart.Position + Vector3.new(math.random(-digRadius, digRadius), 0, math.random(-digRadius, digRadius)))
             wait(1.5)
+            print("Digging...")
         end
         StatusLabel.Text = "Status: Idle\nTool: " .. (currentTool and currentTool.Name or "None")
     end)
@@ -145,15 +148,22 @@ local function autoSell(active)
                 local sellSuccess = false
                 for _, event in pairs(replicatedStorage:GetChildren()) do
                     if event:IsA("RemoteEvent") and event.Name:lower():match("sell") then
-                        for i = 1, 50 do
-                            event:FireServer()
-                            wait(0.02)
-                        end
+                        pcall(function() -- Обработка ошибок при вызове события
+                            for i = 1, 50 do
+                                event:FireServer()
+                                wait(0.02)
+                            end
+                        end)
                         sellSuccess = true
                         break
                     end
                 end
-                if not sellSuccess then firetouchinterest(rootPart, sellPoint, 0) wait(0.1) firetouchinterest(rootPart, sellPoint, 1) end
+                if not sellSuccess then 
+                    pcall(function() firetouchinterest(rootPart, sellPoint, 0) end)
+                    wait(0.1)
+                    pcall(function() firetouchinterest(rootPart, sellPoint, 1) end)
+                end
+                print("Selling...")
             else
                 StatusLabel.Text = "Status: No sell point!\nTool: " .. (currentTool and currentTool.Name or "None")
             end
